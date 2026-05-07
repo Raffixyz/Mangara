@@ -10,6 +10,8 @@ public class InventorySO : ScriptableObject
 
     [field: SerializeField] public int Size { get; private set; } = 10;
 
+    public event Action<Dictionary<int, InventoryItem>> OnInventoryUpdated; 
+    
     public void Initialize()
     {
         _inventoryItems = new List<InventoryItem>();
@@ -38,6 +40,35 @@ public class InventorySO : ScriptableObject
         return quantity;
     }
 
+    public int FindItemIndex(ItemBaseSO item)
+    {
+        for (int i = 0; i < _inventoryItems.Count; i++)
+        {
+            if (_inventoryItems[i].IsEmpty)
+                continue;
+            if (item.ItemName == _inventoryItems[i].Item.ItemName)
+                return i;
+        }
+        return -1;
+    }
+    
+    public void RemoveItem(int itemIndex, int amount)
+    {
+        if (_inventoryItems.Count > itemIndex)
+        {
+            if (_inventoryItems[itemIndex].IsEmpty)
+                return;
+            int reminder = _inventoryItems[itemIndex].Quantity - amount;
+            if (reminder <= 0)
+                _inventoryItems[itemIndex] = InventoryItem.GetEmptyItem();
+            else
+                _inventoryItems[itemIndex] = _inventoryItems[itemIndex]
+                    .ChangeQuantity(reminder);
+
+            InformAboutChange();
+        }
+    }
+    
     private int AddItemToFirstFreeSlot(ItemBaseSO item, int quantity)
     {
         InventoryItem newItem = new InventoryItem
@@ -93,7 +124,20 @@ public class InventorySO : ScriptableObject
 
     private void InformAboutChange()
     {
-        Debug.Log("Inventory updated");
+        OnInventoryUpdated?.Invoke(GetCurrentInventoryState());
+    }
+
+    public void SwapItems(int itemIndex1, int itemIndex2)
+    {
+        InventoryItem item1 = _inventoryItems[itemIndex1];
+        _inventoryItems[itemIndex1] = _inventoryItems[itemIndex2];
+        _inventoryItems[itemIndex2] = item1;
+        InformAboutChange();
+    }
+    
+    public InventoryItem GetItemAt(int itemIndex)
+    {
+        return _inventoryItems[itemIndex];
     }
 
 

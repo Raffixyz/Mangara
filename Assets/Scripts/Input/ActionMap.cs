@@ -22,10 +22,12 @@ namespace Input
 
     public class UIActionMap : ActionMap
     {
-
+        private InputButton _inventory;
         public override bool HasPollable => false;
+        public InputButton Inventory => _inventory;
         public UIActionMap(InputActions action) : base(action)
         {
+            _inventory = new InputButton(action.UI.Inventory);
         }
         public override void OnEnter()
         {

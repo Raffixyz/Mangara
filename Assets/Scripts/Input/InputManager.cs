@@ -28,17 +28,20 @@ namespace Input
             _player = new PlayerActionMap(_inputActions);
             _ui = new UIActionMap(_inputActions);
             _actionMapStates = new FiniteStateMachine<ActionMap>(_player);
+            PlayerMode();
         }
 
         public void PlayerMode()
         {
             _actionMapStates.ChangeState(_player);
-            Debug.Log("State change to playermode");
+            Cursor.visible = false;
+            Cursor.lockState = CursorLockMode.Locked;
         }
         public void UIMode()
         {
             _actionMapStates.ChangeState(_ui);
-            Debug.Log("State change to uiMode");
+            Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.None;
         }
         
         // private void InitializePlayerInput()
