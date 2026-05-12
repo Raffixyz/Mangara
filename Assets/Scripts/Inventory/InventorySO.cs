@@ -1,17 +1,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Inventory;
 using UnityEngine;
 
 [CreateAssetMenu]
 public class InventorySO : ScriptableObject
 {
     [SerializeField] private List<InventoryItem> _inventoryItems;
+    [SerializeField] private InventoryType _inventoryType;
 
     [field: SerializeField] public int Size { get; private set; } = 10;
 
-    public event Action<Dictionary<int, InventoryItem>> OnInventoryUpdated; 
-    
+    public event Action<Dictionary<int, InventoryItem>> OnInventoryUpdated;
+
     public void Initialize()
     {
         _inventoryItems = new List<InventoryItem>();
@@ -31,10 +33,12 @@ public class InventorySO : ScriptableObject
                 {
                     quantity -= AddItemToFirstFreeSlot(item, 1);
                 }
+
                 InformAboutChange();
                 return quantity;
             }
         }
+
         quantity = AddStackableItem(item, quantity);
         InformAboutChange();
         return quantity;
@@ -49,9 +53,10 @@ public class InventorySO : ScriptableObject
             if (item.ItemName == _inventoryItems[i].Item.ItemName)
                 return i;
         }
+
         return -1;
     }
-    
+
     public void RemoveItem(int itemIndex, int amount)
     {
         if (_inventoryItems.Count > itemIndex)
@@ -68,7 +73,7 @@ public class InventorySO : ScriptableObject
             InformAboutChange();
         }
     }
-    
+
     private int AddItemToFirstFreeSlot(ItemBaseSO item, int quantity)
     {
         InventoryItem newItem = new InventoryItem
@@ -127,14 +132,63 @@ public class InventorySO : ScriptableObject
         OnInventoryUpdated?.Invoke(GetCurrentInventoryState());
     }
 
-    public void SwapItems(int itemIndex1, int itemIndex2)
+    public void SwapItems(int itemIndex1, int itemIndex2, InventorySO sourceInventory)
     {
-        InventoryItem item1 = _inventoryItems[itemIndex1];
-        _inventoryItems[itemIndex1] = _inventoryItems[itemIndex2];
-        _inventoryItems[itemIndex2] = item1;
+        InventoryItem targetItem = _inventoryItems[itemIndex2];
+        InventoryItem sourceItem = sourceInventory._inventoryItems[itemIndex1];
+        Debug.Log(targetItem.IsEmpty);
+        if (targetItem.IsEmpty == false)
+        {
+            if (sourceItem.Item.ID == targetItem.Item.ID && sourceItem.Item.IsStackable && targetItem.Quantity < targetItem.Item.MaxStackSize)
+            {
+                AddStackableItem(targetItem.Item, targetItem.Quantity);
+                sourceInventory._inventoryItems[itemIndex1] = InventoryItem.GetEmptyItem();
+            }
+            else
+            {
+                _inventoryItems[itemIndex2] = sourceItem;
+                sourceInventory._inventoryItems[itemIndex1] = targetItem;
+            }
+        }
+        else
+        {
+            _inventoryItems[itemIndex2] = sourceItem;
+            sourceInventory._inventoryItems[itemIndex1] = targetItem;
+        }
+
+
+        InformAboutChange();
+        sourceInventory.InformAboutChange();
+    }
+
+    public void TransferItems(int itemIndex1, InventorySO sourceInventory)
+    {
+        
+        InventoryItem sourceItem = sourceInventory._inventoryItems[itemIndex1];
+
+        if (sourceInventory == InventoryController.Instance.InventoryHandler.InventoryData)
+        {
+            if (InventoryStateData.ChestInventory.InventoryData.IsInventoryFull())
+            {
+                Debug.Log("Inventory is full");
+                return;
+            }
+            InventoryStateData.ChestInventory.InventoryData.AddItem(sourceItem.Item, sourceItem.Quantity);
+        }
+        else
+        {
+            if (InventoryController.Instance.InventoryHandler.InventoryData.IsInventoryFull())
+            {
+                Debug.Log("Inventory is full");
+                return;
+            }
+            InventoryController.Instance.InventoryHandler.InventoryData.AddItem(sourceItem.Item, sourceItem.Quantity);
+        }
+
+        sourceInventory.RemoveItem(itemIndex1, sourceItem.Quantity);
         InformAboutChange();
     }
-    
+
     public InventoryItem GetItemAt(int itemIndex)
     {
         return _inventoryItems[itemIndex];
@@ -180,4 +234,10 @@ public struct InventoryItem
             Item = null,
             Quantity = 0
         };
+}
+
+public enum InventoryType
+{
+    PlayerInventory,
+    ExternalInventory,
 }

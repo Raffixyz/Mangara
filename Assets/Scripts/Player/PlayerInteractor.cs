@@ -13,11 +13,13 @@ namespace Player
         private void OnEnable()
         {
             InputManager.Instance.PlayerInput.Interact.OnDown += OnInteract;
+            InputManager.Instance.UIInput.Submit.OnDown += OnInteract;
         }
 
         private void OnDisable()
         {
             InputManager.Instance.PlayerInput.Interact.OnDown -= OnInteract;
+            InputManager.Instance.UIInput.Submit.OnDown -= OnInteract;
         }
 
         private void OnInteract()
