@@ -12,12 +12,7 @@ public class UiInventoryItem : MonoBehaviour, IPointerClickHandler, IBeginDragHa
 
     public event Action<UiInventoryItem> OnItemClicked, OnItemDroppedOn, OnItemBeginDrag, OnItemEndDrag, OnRightMouseBtnClicked;
     private bool _empty = true;
-
-    private void Awake()
-    {
-        ResetData();
-    }
-
+    
     public void ResetData()
     {
         _itemImage.gameObject.SetActive(false);

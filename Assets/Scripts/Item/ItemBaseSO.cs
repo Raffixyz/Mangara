@@ -6,7 +6,7 @@ public class ItemBaseSO : ScriptableObject
     [field: SerializeField]
     public bool IsStackable { get; set; }
     
-    public int ID => GetInstanceID();
+    public string ItemID;
 
     public int MaxStackSize;
     

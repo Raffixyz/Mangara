@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Inventory;
+using Item;
+using Save;
 using UnityEngine;
 
 [CreateAssetMenu]
@@ -10,6 +12,8 @@ public class InventorySO : ScriptableObject
     [SerializeField] private List<InventoryItem> _inventoryItems;
     [SerializeField] private InventoryType _inventoryType;
 
+    [SerializeField] private string _inventoryID;
+    public string InventoryID => _inventoryID;
     [field: SerializeField] public int Size { get; private set; } = 10;
 
     public event Action<Dictionary<int, InventoryItem>> OnInventoryUpdated;
@@ -99,7 +103,7 @@ public class InventorySO : ScriptableObject
         {
             if (_inventoryItems[i].IsEmpty)
                 continue;
-            if (_inventoryItems[i].Item.ID == item.ID)
+            if (_inventoryItems[i].Item.ItemID == item.ItemID)
             {
                 int amountPossibleToTake = _inventoryItems[i].Item.MaxStackSize - _inventoryItems[i].Quantity;
 
@@ -139,7 +143,8 @@ public class InventorySO : ScriptableObject
         Debug.Log(targetItem.IsEmpty);
         if (targetItem.IsEmpty == false)
         {
-            if (sourceItem.Item.ID == targetItem.Item.ID && sourceItem.Item.IsStackable && targetItem.Quantity < targetItem.Item.MaxStackSize)
+            if (sourceItem.Item.ItemID == targetItem.Item.ItemID && sourceItem.Item.IsStackable &&
+                targetItem.Quantity < targetItem.Item.MaxStackSize)
             {
                 AddStackableItem(targetItem.Item, targetItem.Quantity);
                 sourceInventory._inventoryItems[itemIndex1] = InventoryItem.GetEmptyItem();
@@ -163,7 +168,6 @@ public class InventorySO : ScriptableObject
 
     public void TransferItems(int itemIndex1, InventorySO sourceInventory)
     {
-        
         InventoryItem sourceItem = sourceInventory._inventoryItems[itemIndex1];
 
         if (sourceInventory == InventoryController.Instance.InventoryHandler.InventoryData)
@@ -173,6 +177,7 @@ public class InventorySO : ScriptableObject
                 Debug.Log("Inventory is full");
                 return;
             }
+
             InventoryStateData.ChestInventory.InventoryData.AddItem(sourceItem.Item, sourceItem.Quantity);
         }
         else
@@ -182,6 +187,7 @@ public class InventorySO : ScriptableObject
                 Debug.Log("Inventory is full");
                 return;
             }
+
             InventoryController.Instance.InventoryHandler.InventoryData.AddItem(sourceItem.Item, sourceItem.Quantity);
         }
 
@@ -209,6 +215,57 @@ public class InventorySO : ScriptableObject
         }
 
         return returnValue;
+    }
+    
+    public void SetItemAt(int slotIndex, ItemBaseSO item, int quantity)
+    {
+        if (slotIndex < 0 || slotIndex >= _inventoryItems.Count) return;
+    
+        _inventoryItems[slotIndex] = new InventoryItem
+        {
+            Item     = item,
+            Quantity = quantity
+        };
+    
+        InformAboutChange(); 
+    }
+
+    public InventorySaveData GetSaveData()
+    {
+        var saveData = new InventorySaveData
+        {
+            InventoryID = _inventoryID,
+            Size = this.Size,
+            Slots = new List<InventorySlotData>()
+        };
+
+        foreach (var inventoryItem in GetCurrentInventoryState())
+        {
+            saveData.Slots.Add(new InventorySlotData
+            {
+                SlotIndex = inventoryItem.Key,
+                ItemID = inventoryItem.Value.Item.ItemID,
+                Quantity = inventoryItem.Value.Quantity
+            });
+        }
+
+        return saveData;
+    }
+
+    public void LoadFromSaveData(InventorySaveData saveData, ItemDatabaseSO itemDatabase)
+    {
+        foreach (InventorySlotData slot in saveData.Slots)
+        {
+            ItemBaseSO item = itemDatabase.GetItemByID(slot.ItemID);
+            
+            if (item == null)
+            {
+                Debug.LogWarning("Item not found: " + slot.ItemID);
+                continue;
+            }
+            
+            SetItemAt(slot.SlotIndex, item, slot.Quantity);
+        }
     }
 }
 

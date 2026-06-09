@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Input;
 using Inventory;
+using TMPro;
 using UnityEngine;
 
 namespace Manager
@@ -10,7 +11,9 @@ namespace Manager
     {
         [SerializeField] private UiInventoryPage _playerInventoryPage;
         [SerializeField] private UiInventoryPage _externalInventoryPage;
-        
+        [SerializeField] private UIItemSelector _itemSelector;
+
+        [SerializeField] private TMP_Text _timeText;
         public void ToogleInventory(InventoryHandler inventoryHandler)
         {
             if (_playerInventoryPage.gameObject.activeSelf)
@@ -52,5 +55,36 @@ namespace Manager
                 }
             }
         }
+
+        public void ShowItemSelector(List<InventoryItem> items, Action<ItemBaseSO> onItemSelected)
+        {
+            Time.timeScale = 0;
+            InputManager.Instance.UIMode();
+            _itemSelector.Show(items, onItemSelected);
+        }
+        
+        
+
+        private void Update()
+        {
+            ConvertTime(GameManager.Instance.TimeOfDay);
+        }
+
+        private void ConvertTime(float timeValue)
+        {
+            int hour = (int)timeValue;
+            float fraction = timeValue - hour;
+            int interval = (int)Math.Floor(fraction * 6);
+            if (interval >= 6)
+            {
+                hour++;
+                interval = 0;
+            }
+            int minutes = interval * 10;
+            
+            _timeText.text = $"{hour:00}:{minutes:00}";
+        }
+        
+        
     }
 }
