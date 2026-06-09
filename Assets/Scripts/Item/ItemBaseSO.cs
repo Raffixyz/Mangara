@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu]
+[CreateAssetMenu(menuName = "Items/Mangrove Seed")]
 public class ItemBaseSO : ScriptableObject
 {
     [field: SerializeField]
@@ -13,4 +13,5 @@ public class ItemBaseSO : ScriptableObject
     public string ItemName;
     public Sprite ItemSprite;
     public string ItemDescription;
+    public MangroveType MangroveType;
 }
