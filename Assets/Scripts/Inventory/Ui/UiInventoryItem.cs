@@ -11,14 +11,8 @@ public class UiInventoryItem : MonoBehaviour, IPointerClickHandler, IBeginDragHa
     [SerializeField] private Image _borderImage;
 
     public event Action<UiInventoryItem> OnItemClicked, OnItemDroppedOn, OnItemBeginDrag, OnItemEndDrag, OnRightMouseBtnClicked;
-    
     private bool _empty = true;
-
-    private void Awake()
-    {
-        ResetData();
-    }
-
+    
     public void ResetData()
     {
         _itemImage.gameObject.SetActive(false);
@@ -78,3 +72,5 @@ public class UiInventoryItem : MonoBehaviour, IPointerClickHandler, IBeginDragHa
         // This is added because the Onbegin and OnEnd need this 
     }
 }
+
+

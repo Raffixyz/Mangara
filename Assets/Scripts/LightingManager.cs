@@ -1,30 +1,32 @@
+using Manager;
 using Unity.Multiplayer.Center.Common;
 using UnityEngine;
 
-[ExecuteAlways]
+
 public class LightingManager : MonoBehaviour
 {
     // References
     [SerializeField] private Light directionalLight;
     [SerializeField] private LightingPreset currentPreset;
     // Variables
-    [SerializeField, Range(0, 24)] private float timeOfDay;
+    // [SerializeField, Range(0, 24)] private float timeOfDay;
 
     private void Update()
     {
         if (currentPreset == null)
             return;
 
-        if (Application.isPlaying)
-        {
-            timeOfDay += Time.deltaTime;
-            timeOfDay %= 24; // Loop the time of day back to 0 after reaching 24
-            UpdateLighting(timeOfDay / 24f);
-        }
-        else
-        {
-            UpdateLighting(timeOfDay / 24f);
-        }
+        UpdateLighting(GameManager.Instance.TimeOfDay / 24f);
+        
+        // if (Application.isPlaying)
+        // {
+        //     timeOfDay += Time.deltaTime;
+        //     timeOfDay %= 24; // Loop the time of day back to 0 after reaching 24
+        // }
+        // else
+        // {
+        //     UpdateLighting(GameManager.Instance.TimeOfDay / 24f);
+        // }
     }
 
     private void UpdateLighting(float timePercent)

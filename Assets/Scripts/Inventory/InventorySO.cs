@@ -1,17 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Inventory;
+using Item;
+using Save;
 using UnityEngine;
 
 [CreateAssetMenu]
 public class InventorySO : ScriptableObject
 {
     [SerializeField] private List<InventoryItem> _inventoryItems;
+    [SerializeField] private InventoryType _inventoryType;
 
+    [SerializeField] private string _inventoryID;
+    public string InventoryID => _inventoryID;
     [field: SerializeField] public int Size { get; private set; } = 10;
 
-    public event Action<Dictionary<int, InventoryItem>> OnInventoryUpdated; 
-    
+    public event Action<Dictionary<int, InventoryItem>> OnInventoryUpdated;
+
     public void Initialize()
     {
         _inventoryItems = new List<InventoryItem>();
@@ -31,10 +37,12 @@ public class InventorySO : ScriptableObject
                 {
                     quantity -= AddItemToFirstFreeSlot(item, 1);
                 }
+
                 InformAboutChange();
                 return quantity;
             }
         }
+
         quantity = AddStackableItem(item, quantity);
         InformAboutChange();
         return quantity;
@@ -49,9 +57,10 @@ public class InventorySO : ScriptableObject
             if (item.ItemName == _inventoryItems[i].Item.ItemName)
                 return i;
         }
+
         return -1;
     }
-    
+
     public void RemoveItem(int itemIndex, int amount)
     {
         if (_inventoryItems.Count > itemIndex)
@@ -68,7 +77,7 @@ public class InventorySO : ScriptableObject
             InformAboutChange();
         }
     }
-    
+
     private int AddItemToFirstFreeSlot(ItemBaseSO item, int quantity)
     {
         InventoryItem newItem = new InventoryItem
@@ -94,7 +103,7 @@ public class InventorySO : ScriptableObject
         {
             if (_inventoryItems[i].IsEmpty)
                 continue;
-            if (_inventoryItems[i].Item.ID == item.ID)
+            if (_inventoryItems[i].Item.ItemID == item.ItemID)
             {
                 int amountPossibleToTake = _inventoryItems[i].Item.MaxStackSize - _inventoryItems[i].Quantity;
 
@@ -127,14 +136,65 @@ public class InventorySO : ScriptableObject
         OnInventoryUpdated?.Invoke(GetCurrentInventoryState());
     }
 
-    public void SwapItems(int itemIndex1, int itemIndex2)
+    public void SwapItems(int itemIndex1, int itemIndex2, InventorySO sourceInventory)
     {
-        InventoryItem item1 = _inventoryItems[itemIndex1];
-        _inventoryItems[itemIndex1] = _inventoryItems[itemIndex2];
-        _inventoryItems[itemIndex2] = item1;
+        InventoryItem targetItem = _inventoryItems[itemIndex2];
+        InventoryItem sourceItem = sourceInventory._inventoryItems[itemIndex1];
+        Debug.Log(targetItem.IsEmpty);
+        if (targetItem.IsEmpty == false)
+        {
+            if (sourceItem.Item.ItemID == targetItem.Item.ItemID && sourceItem.Item.IsStackable &&
+                targetItem.Quantity < targetItem.Item.MaxStackSize)
+            {
+                AddStackableItem(targetItem.Item, targetItem.Quantity);
+                sourceInventory._inventoryItems[itemIndex1] = InventoryItem.GetEmptyItem();
+            }
+            else
+            {
+                _inventoryItems[itemIndex2] = sourceItem;
+                sourceInventory._inventoryItems[itemIndex1] = targetItem;
+            }
+        }
+        else
+        {
+            _inventoryItems[itemIndex2] = sourceItem;
+            sourceInventory._inventoryItems[itemIndex1] = targetItem;
+        }
+
+
+        InformAboutChange();
+        sourceInventory.InformAboutChange();
+    }
+
+    public void TransferItems(int itemIndex1, InventorySO sourceInventory)
+    {
+        InventoryItem sourceItem = sourceInventory._inventoryItems[itemIndex1];
+
+        if (sourceInventory == InventoryController.Instance.InventoryHandler.InventoryData)
+        {
+            if (InventoryStateData.ChestInventory.InventoryData.IsInventoryFull())
+            {
+                Debug.Log("Inventory is full");
+                return;
+            }
+
+            InventoryStateData.ChestInventory.InventoryData.AddItem(sourceItem.Item, sourceItem.Quantity);
+        }
+        else
+        {
+            if (InventoryController.Instance.InventoryHandler.InventoryData.IsInventoryFull())
+            {
+                Debug.Log("Inventory is full");
+                return;
+            }
+
+            InventoryController.Instance.InventoryHandler.InventoryData.AddItem(sourceItem.Item, sourceItem.Quantity);
+        }
+
+        sourceInventory.RemoveItem(itemIndex1, sourceItem.Quantity);
         InformAboutChange();
     }
-    
+
     public InventoryItem GetItemAt(int itemIndex)
     {
         return _inventoryItems[itemIndex];
@@ -155,6 +215,57 @@ public class InventorySO : ScriptableObject
         }
 
         return returnValue;
+    }
+    
+    public void SetItemAt(int slotIndex, ItemBaseSO item, int quantity)
+    {
+        if (slotIndex < 0 || slotIndex >= _inventoryItems.Count) return;
+    
+        _inventoryItems[slotIndex] = new InventoryItem
+        {
+            Item     = item,
+            Quantity = quantity
+        };
+    
+        InformAboutChange(); 
+    }
+
+    public InventorySaveData GetSaveData()
+    {
+        var saveData = new InventorySaveData
+        {
+            InventoryID = _inventoryID,
+            Size = this.Size,
+            Slots = new List<InventorySlotData>()
+        };
+
+        foreach (var inventoryItem in GetCurrentInventoryState())
+        {
+            saveData.Slots.Add(new InventorySlotData
+            {
+                SlotIndex = inventoryItem.Key,
+                ItemID = inventoryItem.Value.Item.ItemID,
+                Quantity = inventoryItem.Value.Quantity
+            });
+        }
+
+        return saveData;
+    }
+
+    public void LoadFromSaveData(InventorySaveData saveData, ItemDatabaseSO itemDatabase)
+    {
+        foreach (InventorySlotData slot in saveData.Slots)
+        {
+            ItemBaseSO item = itemDatabase.GetItemByID(slot.ItemID);
+            
+            if (item == null)
+            {
+                Debug.LogWarning("Item not found: " + slot.ItemID);
+                continue;
+            }
+            
+            SetItemAt(slot.SlotIndex, item, slot.Quantity);
+        }
     }
 }
 
@@ -180,4 +291,10 @@ public struct InventoryItem
             Item = null,
             Quantity = 0
         };
+}
+
+public enum InventoryType
+{
+    PlayerInventory,
+    ExternalInventory,
 }

@@ -1,64 +1,33 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Input;
+using Inventory;
+using Manager;
+using Save;
 using UnityEngine;
 
 public class InventoryController : PersistentSingleton<InventoryController>
 {
-    [SerializeField]
-    private UiInventoryPage _uiInventoryPage;
-    [SerializeField] private InventorySO _inventoryData;
+    [SerializeField] private InventoryHandler _inventoryHandler;
     [SerializeField] private List<InventoryItem> _initialItems;
-    
+
+    public InventoryHandler InventoryHandler => _inventoryHandler;
+
     private void Start()
     {
-        _uiInventoryPage.Hide();
-        PrepareUI();
-        PrepareInventoryData();
-    }
+        bool hasSaveFile = SaveManager.Instance.HasSaveFile();
 
-    private void PrepareInventoryData()
-    {
-        _inventoryData.Initialize();
-        _inventoryData.OnInventoryUpdated += UpdateInventoryUI;
-        foreach (InventoryItem item in _initialItems)
+        if (hasSaveFile)
         {
-            if (item.IsEmpty)
-                continue;
-            _inventoryData.AddItem(item.Item, item.Quantity);
+            Debug.Log("intiialize player");
+            _inventoryHandler.Initialize();
+        }
+        else
+        {
+            _inventoryHandler.Initialize(_initialItems);
         }
     }
-
-    private void UpdateInventoryUI(Dictionary<int, InventoryItem> inventoryState)
-    {
-        _uiInventoryPage.ResetAllitems();
-        foreach (var item in inventoryState)
-        {
-            _uiInventoryPage.UpdateData(item.Key, item.Value.Item.ItemSprite, item.Value.Quantity);
-        }   
-    }
-
-    private void PrepareUI()
-    {
-        _uiInventoryPage.InitializeInventoryUI(_inventoryData.Size);
-        _uiInventoryPage.OnStartDragging += HandleDragging;
-        _uiInventoryPage.OnSwapItems += HandleSwapItems;
-
-    }
-
-    private void HandleSwapItems(int itemIndex, int indeIndex2)
-    {
-        _inventoryData.SwapItems(itemIndex, indeIndex2);
-    }
-
-    private void HandleDragging(int itemIndex)
-    {
-        InventoryItem item = _inventoryData.GetItemAt(itemIndex);
-        if (item.IsEmpty)
-            return;
-        _uiInventoryPage.CreateDraggedItem(item.Item.ItemSprite, item.Quantity);
-    }
-
 
     private void OnEnable()
     {
@@ -74,36 +43,28 @@ public class InventoryController : PersistentSingleton<InventoryController>
 
     private void OnInventory()
     {
-        if (_uiInventoryPage.gameObject.activeSelf)
-        {
-            _uiInventoryPage.Hide();
-            InputManager.Instance.PlayerMode();
-            Time.timeScale = 1;
-        }
-        else
-        {
-            InputManager.Instance.UIMode();
-            _uiInventoryPage.Show();
-            Time.timeScale = 0;
-            foreach (var item in _inventoryData.GetCurrentInventoryState()) {
-                _uiInventoryPage.UpdateData(item.Key, item.Value.Item.ItemSprite, item.Value.Quantity);
-            }
-        }
+        UIManager.Instance.ToogleInventory(_inventoryHandler);
     }
 
     public void AddItem(ItemBaseSO item, int quantity)
     {
-        _inventoryData.AddItem(item, quantity);
+        _inventoryHandler.AddItem(item, quantity);
     }
 
     public int FindItem(ItemBaseSO item)
     {
-        int itemIndex = _inventoryData.FindItemIndex(item);
+        int itemIndex = _inventoryHandler.InventoryData.FindItemIndex(item);
         return itemIndex;
     }
 
-    public void UseItem(int itemIndex , int quantity)
+    public void UseItem(int itemIndex, int quantity)
     {
-        _inventoryData.RemoveItem(itemIndex, quantity);
+        _inventoryHandler.InventoryData.RemoveItem(itemIndex, quantity);
+    }
+
+    public List<InventoryItem> GetUsableItems(List<ItemBaseSO> acceptedItems)
+    {
+        return acceptedItems.Select(item => _inventoryHandler.InventoryData.FindItemIndex(item))
+            .Where(index => index != -1).Select(index => _inventoryHandler.InventoryData.GetItemAt(index)).ToList();
     }
 }

@@ -23,11 +23,14 @@ namespace Input
     public class UIActionMap : ActionMap
     {
         private InputButton _inventory;
+        private InputButton _submit;
         public override bool HasPollable => false;
         public InputButton Inventory => _inventory;
+        public InputButton Submit => _submit;
         public UIActionMap(InputActions action) : base(action)
         {
             _inventory = new InputButton(action.UI.Inventory);
+            _submit = new InputButton(action.UI.Submit);
         }
         public override void OnEnter()
         {
@@ -48,9 +51,11 @@ namespace Input
         private InputValue<Vector2> _movement;
         private InputButton _interact;
         private InputButton _inventory;
+        private InputButton _temp;
         public InputValue<Vector2> Movement => _movement;
         public InputButton Interact => _interact;
         public InputButton Inventory => _inventory;
+        public InputButton Temp => _temp;
         public override bool HasPollable => true;
 
         public PlayerActionMap(InputActions action) : base(action)
@@ -58,6 +63,9 @@ namespace Input
             _movement = new InputValue<Vector2>(action.Player.Move);
             _interact = new InputButton(action.Player.Interact);
             _inventory = new InputButton(action.Player.Inventory);
+            
+            //temp
+            _temp = new InputButton(action.Player.Jump);
         }
 
 

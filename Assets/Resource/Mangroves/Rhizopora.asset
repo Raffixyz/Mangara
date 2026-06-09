@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 540fa9794082711499c52cb7a9175103, type: 3}
+  m_Name: Rhizopora
+  m_EditorClassIdentifier: Assembly-CSharp::MangroveData
+  _name: Rhizophora
+  _daysPerStage: 0200000003000000
+  _stageObjects:
+  - {fileID: 3344075799457159651, guid: e16847e522f2cfa47b8d57f1a63d5c61, type: 3}
+  - {fileID: 3130963853523041195, guid: 574c260eaeb72f14e8adf53fd3ee03d1, type: 3}
+  - {fileID: 879890627739679232, guid: cf67bfd480b3f744bacd639182ef863f, type: 3}
+  _harvestItem: {fileID: 11400000, guid: 2c5f01eae462ed94883f9d4ee43116e2, type: 2}
+  _harvestAmount: 1
+  ID: rhizophora_mucronata
